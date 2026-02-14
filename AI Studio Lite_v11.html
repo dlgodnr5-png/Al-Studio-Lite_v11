@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Studio Lite - Global Insight</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-dark: #1e293b;
+      --accent-primary: #8b5cf6;
+      --accent-secondary: #ec4899;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+      --pro-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      --excel-green: #10b981;
+      
+      /* 브랜드 컬러 */
+      --coupang-red: #E6162D;
+      --naver-green: #03C75A;
+      --11st-red: #F53D4D;
+      --gmarket-green: #02AC56;
+      --lotte-red: #ED1C24;
+      --auction-red: #D60814;
+    }
+
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      margin: 0; background-color: var(--bg-dark); color: var(--text-main);
+      background-image: radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+      min-height: 100vh; padding: 20px;
+    }
+
+    .app-container { max-width: 1200px; margin: 0 auto; }
+
+    /* Header */
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+    .brand h1 { margin: 0; font-size: 1.8rem; background: var(--pro-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; font-weight: 800; }
+    
+    .header-btns { display: flex; gap: 10px; align-items: center; }
+    
+    /* Happy Day 버튼 */
+    .btn-shop {
+      background: linear-gradient(90deg, #ff9966, #ff5e62);
+      color: white; border: none; padding: 10px 20px; border-radius: 99px;
+      font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;
+      box-shadow: 0 4px 15px rgba(255, 94, 98, 0.4); transition: transform 0.2s;
+      animation: pulse 2s infinite;
+    }
+    .btn-shop:hover { transform: scale(1.05); }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 94, 98, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(255, 94, 98, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 94, 98, 0); }
+    }
+
+    .btn-icon { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: var(--text-dim); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: 0.2s; }
+    .btn-icon:hover { background: rgba(255,255,255,0.2); color: white; }
+
+    /* Search & Filter */
+    .search-box { background: rgba(30, 41, 59, 0.8); padding: 25px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 25px; }
+    .search-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .region-select { background: #334155; color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 0 15px; font-weight: bold; cursor: pointer; min-width: 100px; height: 50px; }
+    input[type="text"] { flex: 1; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 0 20px; color: white; font-size: 1rem; outline: none; height: 50px; min-width: 200px; }
+    input[type="text"]:focus { border-color: var(--accent-primary); }
+    button#search-button { background: var(--pro-gradient); color: white; border: none; padding: 0 30px; border-radius: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; height: 50px; }
+
+    .filters-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-group label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+    select { background: var(--card-dark); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 8px; outline: none; cursor: pointer; }
+
+    /* Results */
+    .controls-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 10px; }
+    .view-toggles { display: flex; gap: 5px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 8px; }
+    .view-btn { background: none; border: none; color: var(--text-dim); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .view-btn.active { background: var(--card-dark); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    #export-excel-btn { background: var(--excel-green); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
+    #export-excel-btn.active { opacity: 1; pointer-events: auto; }
+
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .video-card { background: var(--card-dark); border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; position: relative; }
+    .video-card:hover { transform: translateY(-5px); border-color: var(--accent-primary); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .thumb-area { position: relative; padding-top: 56.25%; background: #000; }
+    .thumb-area img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; }
+    .badge-tier { position: absolute; top:10px; right:10px; background: var(--pro-gradient); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+    .badge-duration { position: absolute; bottom:8px; right:8px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: white; }
+    .video-info { padding: 15px; }
+    .video-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; color: white; text-decoration: none; display: block; height: 2.8em; overflow: hidden; line-height: 1.4; }
+    .stats-row { display: flex; gap: 10px; margin-bottom: 10px; }
+    .stat-box { flex:1; background: rgba(15,23,42,0.5); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+    .stat-label { font-size: 0.65rem; color: var(--text-dim); display: block; }
+    .stat-val { font-size: 0.85rem; font-weight: 800; color: var(--accent-primary); }
+
+    .table-wrapper { width: 100%; overflow-x: auto; background: var(--card-dark); border-radius: 16px; padding: 10px; display: none; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; color: var(--text-main); }
+    th { text-align: left; padding: 12px; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,0.1); white-space: nowrap; }
+    td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+    .table-thumb { width: 80px; height: 45px; object-fit: cover; border-radius: 4px; }
+    .table-title a { color: white; text-decoration: none; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .footer-hook { margin-top: 60px; padding: 50px; background: rgba(139, 92, 246, 0.05); border-radius: 30px; text-align: center; border: 1px dashed var(--accent-primary); cursor: pointer; }
+    .footer-hook h3 { font-size: 1.8rem; margin-bottom: 15px; color: #fff; font-weight: 800; }
+
+    /* Modals */
+    .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+    .modal-content { background: var(--card-dark); width: 100%; max-width: 500px; padding: 30px; border-radius: 20px; border: 1px solid var(--accent-primary); position: relative; }
+    .modal-close { background: var(--pro-gradient); border: none; color: white; width: 100%; padding: 12px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 15px; }
+
+    /* Shop Modal Styles */
+    .shop-modal-content { max-width: 800px; background: #fff; color: #333; overflow-y: auto; max-height: 90vh; }
+    .shop-header { text-align: center; margin-bottom: 25px; }
+    .shop-header h2 { margin: 0; color: #333; font-size: 1.5rem; }
+    
+    .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .shop-card { 
+      display: flex; flex-direction: column; padding: 15px; border-radius: 12px; text-decoration: none; 
+      transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #eee; background: #f8fafc;
+    }
+    .shop-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .shop-name { font-weight: bold; font-size: 1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    
+    /* Coupang Special Style */
+    .plat-coupang { border: 2px solid var(--coupang-red); background: #fff0f1; grid-column: span 2; }
+    .plat-coupang .shop-name { color: var(--coupang-red); font-size: 1.3rem; border-bottom: 1px solid rgba(230,22,45,0.2); padding-bottom: 8px; }
+
+    /* Platform Borders */
+    .plat-naver { border-left: 5px solid var(--naver-green); } .plat-naver .shop-name { color: var(--naver-green); }
+    .plat-11st { border-left: 5px solid var(--11st-red); } .plat-11st .shop-name { color: var(--11st-red); }
+    .plat-gmarket { border-left: 5px solid var(--gmarket-green); } .plat-gmarket .shop-name { color: var(--gmarket-green); }
+    .plat-lotte { border-left: 5px solid var(--lotte-red); } .plat-lotte .shop-name { color: var(--lotte-red); }
+    .plat-auction { border-left: 5px solid var(--auction-red); } .plat-auction .shop-name { color: var(--auction-red); }
+
+    .link-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    
+    /* Coupang Link Button */
+    .shop-link-btn { 
+      background: white; border: 1px solid #ddd; padding: 10px 20px; border-radius: 8px; 
+      font-size: 0.95rem; color: #333; text-decoration: none; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .shop-link-btn:hover { background: #E6162D; color: white; border-color: #E6162D; transform:translateY(-2px); }
+
+    /* Other Links */
+    .shop-link { 
+      background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; 
+      font-size: 0.85rem; color: #333; text-decoration: none; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 4px; transition: 0.2s;
+    }
+    .shop-link:hover { background: #eee; border-color: #bbb; }
+
+    /* Guide Modal Styles (Full Version) */
+    .modal-guide-content { max-width: 800px; max-height: 90vh; overflow-y: auto; background: #fff; color: #333; padding: 0; }
+    .guide-body { padding: 30px; text-align: left; }
+    .guide-body h2 { color: #d93025; border-bottom: 2px solid #d93025; padding-bottom: 15px; margin-top: 0; font-size: 1.5rem; text-align: center; }
+    
+    .step-box { background: white; border: 1px solid #ddd; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .step-title { font-size: 1.2rem; font-weight: bold; color: #1a73e8; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    .step-num { background: #1a73e8; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1rem; flex-shrink: 0; }
+    
+    .guide-btn { display: inline-block; background: #1a73e8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px 0; font-size: 0.95rem; }
+    .guide-btn:hover { background: #1558b0; }
+    .highlight { background: #fff4e5; color: #d93025; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #ffe0b2; }
+    .tip-box { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 15px; margin-top: 15px; font-size: 0.9rem; color: #1e40af; }
+
+    #loading { text-align: center; padding: 50px; display: none; font-weight: 800; color: var(--accent-primary); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <div class="brand">
+        <h1>AI Studio Lite</h1>
+        <p>글로벌 유튜브 트렌드 분석기</p>
+      </div>
+      <div class="header-btns">
+        <button class="btn-shop" onclick="openModal('shop-modal')">
+          🛍️ Happy Day 구경
+        </button>
+        <button class="btn-icon" onclick="openModal('guide-modal')" title="사용 가이드">📖</button>
+        <button class="btn-icon" onclick="openModal('settings-modal')" title="API 설정">⚙️</button>
+      </div>
+    </header>
+
+    <div class="search-box">
+      <form id="search-form">
+        <div class="search-row">
+          <select id="region-select" class="region-select">
+            <option value="KR" selected>🇰🇷 한국</option>
+            <option value="US">🇺🇸 미국</option>
+            <option value="JP">🇯🇵 일본</option>
+            <option value="">🌏 전세계</option>
+          </select>
+          <input id="search-input" type="text" placeholder="분석할 키워드를 입력하세요..." autocomplete="off" />
+          <button id="search-button" type="submit">100개 분석 시작</button>
+        </div>
+      </form>
+
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label>영상 길이</label>
+          <select id="length-filter">
+            <option value="all">전체</option>
+            <option value="short">숏폼 (&lt; 60초)</option>
+            <option value="long">롱폼 (≥ 60초)</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>업로드 기간</label>
+          <select id="date-filter">
+            <option value="all">전체</option>
+            <option value="1m">최근 1개월</option>
+            <option value="2m">최근 2개월</option>
+            <option value="6m">최근 6개월</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>구독자 대비 조회 등급</label>
+          <select id="ratio-filter">
+            <option value="all">전체 등급</option>
+            <option value="1">1단계: 비율 &lt; 0.2</option>
+            <option value="2">2단계: 0.2 ~ 0.6</option>
+            <option value="3">3단계: 0.6 ~ 1.4</option>
+            <option value="4">4단계: 1.4 ~ 3.0</option>
+            <option value="5">5단계: ≥ 3.0 (대박)</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>데이터 정렬</label>
+          <select id="sort-select">
+            <option value="view-desc">조회수 내림차순</option>
+            <option value="view-asc">조회수 오름차순</option>
+            <option value="date-desc">업로드 최신순</option>
+            <option value="date-asc">업로드 오래된순</option>
+            <option value="ratio-desc">잠재력 비율 내림차순</option>
+            <option value="ratio-asc">잠재력 비율 오름차순</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <div class="view-toggles">
+        <button class="view-btn active" id="view-card-btn">카드 보기</button>
+        <button class="view-btn" id="view-table-btn">테이블 보기</button>
+      </div>
+      <button id="export-excel-btn">📥 엑셀(.xlsx)로 저장</button>
+    </div>
+
+    <div id="loading">🚀 100개의 데이터를 정밀 분석 중입니다...</div>
+    
+    <div id="results-card" class="cards-grid"></div>
+    <div id="results-table" class="table-wrapper">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th>썸네일</th><th>제목</th><th>채널명</th><th>조회수</th><th>구독자</th><th>잠재력</th><th>길이</th><th>게시일</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="footer-hook" onclick="showProMessage()">
+      <h3>"10분 만에 이런 영상 100개 만들기 지금 제작중..."</h3>
+      <p>단순 분석을 넘어, AI가 스크립트부터 편집까지 완료하는 'AI Studio Pro'가 곧 공개됩니다.</p>
+    </div>
+  </div>
+
+  <div id="shop-modal" class="modal">
+    <div class="modal-content shop-modal-content">
+      <div class="shop-header">
+        <h2>🎉 영상 기다리시는 동안 ~ 구경오세요!</h2>
+        <p>필요한 물건이 있는지 한번 둘러보세요.</p>
+      </div>
+      
+      <div class="shop-grid">
+        <div class="shop-card plat-coupang">
+          <div class="shop-name">🟦 쿠팡 (Coupang) <span style="font-size:0.8rem; color:#666; margin-left:auto;">추천 1순위</span></div>
+          
+          <div style="font-size:0.9rem; color:#333; margin-bottom:15px; line-height:1.5;">
+            👇 버튼을 누르면 <strong>자동으로</strong> 파트너스 혜택 적용 후 상점으로 이동합니다!
+          </div>
+
+          <div class="link-row">
+            <button class="shop-link-btn" onclick="openCoupangSmart('https://shop.coupang.com/heltopia')">
+              👉 힐토피아 구경하기
+            </button>
+            <button class="shop-link-btn" onclick="openCoupangSmart('https://shop.coupang.com/heltiara')">
+              👉 힐티아라 구경하기
+            </button>
+          </div>
+        </div>
+
+        <div class="shop-card plat-naver">
+          <div class="shop-name">🟩 스마트스토어</div>
+          <div class="link-row">
+            <a href="https://smartstore.naver.com/heltiara01" target="_blank" class="shop-link">👉 동헌마트</a>
+            <a href="https://smartstore.naver.com/heltiara2" target="_blank" class="shop-link">👉 힐티아라</a>
+          </div>
+        </div>
+
+        <div class="shop-card plat-11st">
+          <div class="shop-name">🟨 11번가</div>
+          <div class="link-row">
+            <a href="https://shop.11st.co.kr/stores/1185083" target="_blank" class="shop-link">👉 힐토피아</a>
+            <a href="https://shop.11st.co.kr/stores/1185121" target="_blank" class="shop-link">👉 힐티아라</a>
+          </div>
+        </div>
+
+        <div class="shop-card plat-gmarket">
+          <div class="shop-name">🟦 G마켓</div>
+          <div class="link-row">
+            <a href="https://minishop.gmarket.co.kr/heltiara1" target="_blank" class="shop-link">👉 힐토피아</a>
+            <a href="https://minishop.gmarket.co.kr/heltiara2" target="_blank" class="shop-link">👉 힐티아라</a>
+          </div>
+        </div>
+
+        <div class="shop-card plat-lotte">
+          <div class="shop-name">🟥 롯데온</div>
+          <div class="link-row">
+            <a href="https://www.lotteon.com/p/display/seller/sellerShop/LO10168773" target="_blank" class="shop-link">👉 다온누리</a>
+            <a href="https://www.lotteon.com/p/display/seller/sellerShop/LO10168919" target="_blank" class="shop-link">👉 힐티아라</a>
+          </div>
+        </div>
+
+        <div class="shop-card plat-auction">
+          <div class="shop-name">🟪 옥션</div>
+          <div class="link-row">
+            <a href="https://stores.auction.co.kr/heltiara1" target="_blank" class="shop-link">👉 힐토피아</a>
+            <a href="https://stores.auction.co.kr/heltiara2" target="_blank" class="shop-link">👉 힐티아라</a>
+          </div>
+        </div>
+      </div>
+
+      <button class="modal-close" onclick="closeModal('shop-modal')">닫기</button>
+    </div>
+  </div>
+
+  <div id="guide-modal" class="modal">
+    <div class="modal-content modal-guide-content">
+      <div class="guide-body">
+        <h2>🔑 왕초보 API 키 발급 가이드</h2>
+        
+        <div class="step-box">
+          <div class="step-title"><span class="step-num">1</span> 구글 클라우드 접속하기</div>
+          <p>아래 파란 버튼을 눌러 구글 개발자 사이트로 이동하세요. (로그인 필요)</p>
+          <a href="https://console.cloud.google.com/" target="_blank" class="guide-btn">👉 구글 클라우드 콘솔 바로가기</a>
+        </div>
+
+        <div class="step-box">
+          <div class="step-title"><span class="step-num">2</span> 새 프로젝트 만들기</div>
+          <p>1. 화면 맨 위쪽의 <strong>[프로젝트 선택]</strong> 글자를 클릭하세요.</p>
+          <p>2. 나오는 창 오른쪽 위의 <strong>[새 프로젝트]</strong>를 누르세요.</p>
+          <p>3. 이름에 <code>유튜브분석도구</code>라고 적고 <strong>[만들기]</strong>를 누르세요.</p>
+          <div class="tip-box">💡 만들고 나서 잠시 후, 상단 메뉴에서 방금 만든 프로젝트를 선택해야 합니다.</div>
+        </div>
+
+        <div class="step-box">
+          <div class="step-title"><span class="step-num">3</span> YouTube 기능 켜기</div>
+          <p>1. 왼쪽 위 <strong>[줄 3개 메뉴(≡)]</strong>를 누르세요.</p>
+          <p>2. <strong>[API 및 서비스]</strong> → <strong>[라이브러리]</strong>를 클릭하세요.</p>
+          <p>3. 검색창에 <code>youtube</code>를 검색하고 <strong>[YouTube Data API v3]</strong>를 클릭하세요.</p>
+          <p>4. 파란색 <strong>[사용]</strong> 버튼을 누르세요.</p>
+        </div>
+
+        <div class="step-box">
+          <div class="step-title"><span class="step-num">4</span> 키 생성 및 복사</div>
+          <p>1. <strong>[사용자 인증 정보 만들기]</strong>를 클릭하세요.</p>
+          <p>2. <strong>[공개 데이터]</strong>를 선택하고 다음으로 넘어가세요.</p>
+          <p>3. 화면에 나온 <span class="highlight">AIza...</span> 로 시작하는 긴 코드를 복사하세요.</p>
+        </div>
+
+        <div class="step-box">
+          <div class="step-title"><span class="step-num">5</span> 앱에 입력하기</div>
+          <p>이 창을 닫고, 앱 오른쪽 상단 <strong>[⚙️ 설정]</strong> 버튼을 눌러 복사한 키를 붙여넣으세요.</p>
+        </div>
+
+        <button class="modal-close" onclick="closeModal('guide-modal')">이제 할 수 있어요! (닫기)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <h2 style="margin-top:0; color:white;">API 키 설정</h2>
+      <input id="yt-api-key" type="password" placeholder="AIza..." style="width:100%; padding:15px; background:#0f172a; border:1px solid #334155; color:white; border-radius:12px;" />
+      <button id="save-keys" class="modal-close">저장</button>
+      <button onclick="closeModal('settings-modal')" style="width:100%; background:none; border:none; color:#64748b; margin-top:10px; cursor:pointer;">닫기</button>
+    </div>
+  </div>
+
+  <script>
+    const LS_KEY = "yt_api_key";
+    let YT_API_KEY = localStorage.getItem(LS_KEY) || "";
+    document.getElementById('yt-api-key').value = YT_API_KEY;
+
+    let currentVideoData = []; let lastRenderedData = []; let currentViewMode = 'card';
+
+    // --- [스마트 연동 핵심] ---
+    // 1. 새 창(이름: coupang_pop)에 파트너스 링크를 엽니다. (수수료 적립)
+    // 2. 잠시 후, 같은 창(coupang_pop)에 상점 링크를 덮어씁니다.
+    // * 결과: 앱은 그대로 있고, 외부 창 하나만 열려 최종적으로 상점에 도착합니다.
+    function openCoupangSmart(targetUrl) {
+      const winName = 'coupang_pop';
+      
+      // 1. 파트너스 링크 열기
+      window.open('https://link.coupang.com/a/cQpkjC', winName);
+      
+      // 2. 상점 링크로 덮어쓰기 (1초 딜레이)
+      setTimeout(() => {
+        window.open(targetUrl, winName);
+      }, 1000);
+    }
+
+    function formatNumber(num) { return Number(num).toLocaleString("ko-KR"); }
+    function formatDuration(iso) {
+      if (!iso) return "";
+      const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!match) return iso;
+      const h = parseInt(match[1]||0), m = parseInt(match[2]||0), s = parseInt(match[3]||0);
+      let parts = [];
+      if(h>0) parts.push(h);
+      parts.push(h>0 ? String(m).padStart(2,"0") : m);
+      parts.push(String(s).padStart(2,"0"));
+      return parts.join(":");
+    }
+    function getDurationSeconds(iso) {
+      if (!iso) return 0;
+      const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!match) return 0;
+      return (parseInt(match[1]||0)*3600) + (parseInt(match[2]||0)*60) + parseInt(match[3]||0);
+    }
+    function getRatioLevel(r) {
+      if(!r || !isFinite(r) || r<=0) return 0;
+      if(r<0.2) return 1; if(r<0.6) return 2; if(r<1.4) return 3; if(r<3) return 4; return 5;
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function showProMessage() { alert("🔒 AI Studio Pro는 현재 개발 마무리 단계입니다.\n곧 공개됩니다!"); }
+
+    document.getElementById('save-keys').addEventListener('click', () => {
+      const val = document.getElementById('yt-api-key').value.trim();
+      localStorage.setItem(LS_KEY, val);
+      YT_API_KEY = val;
+      alert("저장되었습니다.");
+      closeModal('settings-modal');
+    });
+
+    document.getElementById('view-card-btn').addEventListener('click', () => {
+      currentViewMode = 'card';
+      document.getElementById('view-card-btn').classList.add('active');
+      document.getElementById('view-table-btn').classList.remove('active');
+      document.getElementById('results-card').style.display = 'grid';
+      document.getElementById('results-table').style.display = 'none';
+      renderVideos();
+    });
+
+    document.getElementById('view-table-btn').addEventListener('click', () => {
+      currentViewMode = 'table';
+      document.getElementById('view-table-btn').classList.add('active');
+      document.getElementById('view-card-btn').classList.remove('active');
+      document.getElementById('results-card').style.display = 'none';
+      document.getElementById('results-table').style.display = 'block';
+      renderVideos();
+    });
+
+    document.getElementById('search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = document.getElementById('search-input').value.trim();
+      const region = document.getElementById('region-select').value;
+      if(!YT_API_KEY) return openModal('settings-modal');
+      if(!query) return;
+
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('results-card').innerHTML = '';
+      document.querySelector('#data-table tbody').innerHTML = '';
+      document.getElementById('export-excel-btn').classList.remove('active');
+
+      try {
+        let allItems = []; let nextPageToken = "";
+        for(let i=0; i<2; i++) {
+          let url = `https://www.googleapis.com/youtube/v3/search?key=${YT_API_KEY}&part=snippet&q=${query}&maxResults=50&type=video&order=viewCount`;
+          if(region) url += `&regionCode=${region}`;
+          if(nextPageToken) url += `&pageToken=${nextPageToken}`;
+          
+          const res = await fetch(url);
+          if(!res.ok) throw new Error("API 오류: 키를 확인하거나 할당량을 체크하세요.");
+          const data = await res.json();
+          if(data.items) {
+            allItems = allItems.concat(data.items);
+            nextPageToken = data.nextPageToken;
+          }
+          if(!nextPageToken) break;
+        }
+
+        if(!allItems.length) { alert("결과가 없습니다."); document.getElementById('loading').style.display='none'; return; }
+
+        const vIds = allItems.map(i => i.id.videoId).filter(Boolean);
+        let videoDetails = [];
+        for(let i=0; i<vIds.length; i+=50) {
+          const chunk = vIds.slice(i, i+50).join(',');
+          const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?key=${YT_API_KEY}&part=snippet,statistics,contentDetails&id=${chunk}`);
+          const vData = await vRes.json();
+          if(vData.items) videoDetails = videoDetails.concat(vData.items);
+        }
+
+        const cIds = [...new Set(videoDetails.map(v => v.snippet.channelId))].filter(Boolean);
+        let channelStats = {};
+        for(let i=0; i<cIds.length; i+=50) {
+          const chunk = cIds.slice(i, i+50).join(',');
+          const cRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?key=${YT_API_KEY}&part=statistics&id=${chunk}`);
+          const cData = await cRes.json();
+          if(cData.items) cData.items.forEach(c => channelStats[c.id] = c.statistics.subscriberCount);
+        }
+
+        currentVideoData = videoDetails.map(video => {
+          const viewCount = Number(video.statistics.viewCount||0);
+          const subscriberCount = Number(channelStats[video.snippet.channelId]||0);
+          const ratio = subscriberCount > 0 ? viewCount/subscriberCount : 0;
+          return {
+            video, viewCount, subscriberCount, ratio,
+            durationSeconds: getDurationSeconds(video.contentDetails.duration),
+            publishedAtTime: new Date(video.snippet.publishedAt).getTime(),
+            ratioLevel: getRatioLevel(ratio)
+          };
+        });
+
+        document.getElementById('export-excel-btn').classList.add('active');
+        renderVideos();
+      } catch (err) { alert(err.message); } 
+      finally { document.getElementById('loading').style.display='none'; }
+    });
+
+    function renderVideos() {
+      const cardContainer = document.getElementById('results-card');
+      const tableBody = document.querySelector('#data-table tbody');
+      cardContainer.innerHTML = ''; tableBody.innerHTML = '';
+      
+      const lF = document.getElementById('length-filter').value;
+      const dF = document.getElementById('date-filter').value;
+      const rF = document.getElementById('ratio-filter').value;
+      const sM = document.getElementById('sort-select').value;
+
+      let filtered = currentVideoData.filter(item => {
+        if(lF === 'short' && !(item.durationSeconds > 0 && item.durationSeconds < 60)) return false;
+        if(lF === 'long' && !(item.durationSeconds >= 60)) return false;
+        if(dF !== 'all') {
+           const ms = parseInt(dF)*30*24*60*60*1000;
+           if(item.publishedAtTime < (Date.now() - ms)) return false;
+        }
+        if(rF !== 'all' && item.ratioLevel != Number(rF)) return false;
+        return true;
+      });
+
+      filtered.sort((a,b) => {
+        if(sM==='view-desc') return b.viewCount - a.viewCount;
+        if(sM==='view-asc') return a.viewCount - b.viewCount;
+        if(sM==='date-desc') return b.publishedAtTime - a.publishedAtTime;
+        if(sM==='date-asc') return a.publishedAtTime - b.publishedAtTime;
+        if(sM==='ratio-desc') return b.ratio - a.ratio;
+        if(sM==='ratio-asc') return a.ratio - b.ratio;
+        return 0;
+      });
+
+      lastRenderedData = filtered;
+      if(!filtered.length) { cardContainer.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:20px;">결과 없음</div>'; return; }
+
+      filtered.forEach(item => {
+        const v = item.video.snippet;
+        const thumb = v.thumbnails.high?.url || v.thumbnails.medium?.url;
+        const tier = ["-","1","2","3","4","S"][item.ratioLevel] + (item.ratioLevel==5?"-TIER":"단계");
+        const dur = formatDuration(item.video.contentDetails.duration);
+        const date = new Date(item.publishedAtTime).toLocaleDateString();
+
+        if(currentViewMode === 'card') {
+          const card = document.createElement('div');
+          card.className = 'video-card';
+          card.innerHTML = `
+            <div class="thumb-area">
+              <img src="${thumb}">
+              <div class="badge-tier">${tier}</div>
+              <div class="badge-duration">${dur}</div>
+            </div>
+            <div class="video-info">
+              <a href="https://youtube.com/watch?v=${item.video.id}" target="_blank" class="video-title">${v.title}</a>
+              <div class="stats-row">
+                <div class="stat-box"><span class="stat-label">조회수</span><span class="stat-val">${formatNumber(item.viewCount)}</span></div>
+                <div class="stat-box"><span class="stat-label">잠재력</span><span class="stat-val">${item.ratio.toFixed(2)}x</span></div>
+              </div>
+              <div style="font-size:0.8rem;color:var(--text-dim)">${v.channelTitle}</div>
+            </div>`;
+          cardContainer.appendChild(card);
+        } else {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><img src="${thumb}" class="table-thumb"></td>
+            <td class="table-title"><a href="https://youtube.com/watch?v=${item.video.id}" target="_blank">${v.title}</a></td>
+            <td>${v.channelTitle}</td>
+            <td>${formatNumber(item.viewCount)}</td>
+            <td>${formatNumber(item.subscriberCount)}</td>
+            <td style="color:${item.ratio>=1.4?'#8b5cf6':'inherit'};font-weight:bold">${item.ratio.toFixed(2)}x</td>
+            <td>${dur}</td>
+            <td>${date}</td>`;
+          tableBody.appendChild(tr);
+        }
+      });
+    }
+
+    document.getElementById('export-excel-btn').addEventListener('click', () => {
+      if(!lastRenderedData.length) return alert("데이터 없음");
+      const data = lastRenderedData.map(i => ({
+        "제목": i.video.snippet.title, "채널": i.video.snippet.channelTitle,
+        "조회수": i.viewCount, "구독자": i.subscriberCount, "잠재력": parseFloat(i.ratio.toFixed(2)),
+        "길이": formatDuration(i.video.contentDetails.duration), "날짜": new Date(i.publishedAtTime).toLocaleDateString(),
+        "URL": `https://youtu.be/${i.video.id}`
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      ws['!cols'] = [{wch:40},{wch:20},{wch:10},{wch:10},{wch:10},{wch:10},{wch:15},{wch:40}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "YouTube_Data");
+      XLSX.writeFile(wb, `YouTube_Analysis_${new Date().toISOString().slice(0,10)}.xlsx`);
+    });
+
+    ['length-filter','date-filter','ratio-filter','sort-select'].forEach(id => {
+      document.getElementById(id).addEventListener('change', renderVideos);
+    });
+  </script>
+</body>
+</html>
